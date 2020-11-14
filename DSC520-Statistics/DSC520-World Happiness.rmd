@@ -1,0 +1,345 @@
+---
+title: "DSC520-Final Project-Step 3"
+author: "Timothy Robbins"
+date: "11/7/2019"
+output:
+  word_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r load packages}
+
+install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+library(ggplot2)
+install.packages("readr", repos = "http://cran.us.r-project.org")
+library(readr)
+install.packages("plyr", repos = "http://cran.us.r-project.org")
+library(plyr)
+install.packages("countrycode", repos = "http://cran.us.r-project.org")
+library(countrycode)
+install.packages("dplyr", repos = "http://cran.us.r-project.org")
+library(dplyr)
+install.packages("VIM", repos = "http://cran.us.r-project.org")
+library(VIM)
+install.packages("Hmisc", repos = "http://cran.us.r-project.org")
+library(Hmisc)
+install.packages("ggm", repos = "http://cran.us.r-project.org")
+library(ggm)
+install.packages("polycor", repos = "http://cran.us.r-project.org")
+library(polycor)
+install.packages("pastecs", repos = "http://cran.us.r-project.org")
+library(pastecs)
+install.packages("psych", repos = "http://cran.us.r-project.org")
+library(psych)
+
+
+```
+
+```{r Step 2}
+
+# Data Importing and Cleaning Steps:
+setwd("C:/Users/Tim/Downloads/ThinkStats2-master/ThinkStats2-master/code")  
+
+myData = read.csv("WorldHappiness2018_Data.csv", header = TRUE, stringsAsFactors=FALSE)
+
+cleanData <- myData
+
+
+View(myData)  # get a detailed view of the dataset
+class(myData)  # get class of dataset
+dim(myData)  # get dimensions of datset
+str(myData)  # get structure of dataset
+summary(myData)  # get summary of dataset to help detect outliers
+
+histScore <- ggplot(myData, aes(x = Score)) +
+  geom_histogram()  # plot histogram to identify outliers
+histScore  # distribution skewed to the right, but do not appear to be outliers
+
+boxplot(myData$Score, plot = FALSE)$out  # confirmed no outliers (+-1.5 x IQ)
+cleanData$Store <- myData$Store
+
+histGDP <- ggplot(myData, aes(x = GDP_Per_Capita)) +
+  geom_histogram()  # plot histogram to identify outliers
+histGDP  #  gdp per capita values of 0 and > 2.0 could be errors
+
+boxplot(myData$GDP_Per_Capita, plot = FALSE)$out  # use boxplot.out to confirm outliers
+
+# change  outlier of 2.096 to NA for cleanData set - appears to be error
+ind <- which(myData$GDP_Per_Capita == 2.096)
+ind
+cleanData$GDP_Per_Capita[ind] <- NA
+cleanData[ind, ]
+
+
+histSocial <- ggplot(myData, aes(x = Social_Support)) +
+  geom_histogram()  # plot histogram to identify outliers
+histSocial  # Social Support value of 0 could be error
+
+boxplot(myData$Social_Support, plot = FALSE)$out  # use boxplot$out to determine outliers (+-1.5 x IQ)
+
+# change outlier values of 0.372, 0.382, and 0.000 to NA for cleanData set - appear to be errors
+ind <- which(myData$Social_Support == 0.372)
+ind
+cleanData$Social_Support[ind] <- NA
+cleanData[ind, ]
+
+ind <- which(myData$Social_Support == 0.382)
+ind
+cleanData$Social_Support[ind] <- NA
+cleanData[ind, ]
+
+ind <- which(myData$Social_Support == 0.000)
+ind
+cleanData$Social_Support[ind] <- NA
+cleanData[ind, ]
+
+
+histLife <- ggplot(myData, aes(x = Healthy_Life_Expectancy)) +
+  geom_histogram()  # plot histogram to identify outliers
+histLife  # life expectancy values of zero and > 1 could be errors
+
+boxplot(myData$Healthy_Life_Expectancy, plot = FALSE)$out  # use boxplot$out to determine outliers (+-1.5 x IQ)  # confirmed not outliers
+
+
+histFreedom <- ggplot(myData, aes(x = Freedom_To_Make_Life_Choices)) +
+  geom_histogram()  # plot histogram to identify outliers
+histFreedom  # values of 0.0 may be errors
+
+boxplot(myData$Freedom_To_Make_Life_Choices, plot = FALSE)$out  # use boxplot$out to determine outliers (+-1.5 x IQ)
+
+# mark values of 0.016 and 0.000 as NA for clean data set
+ind <- which(myData$Freedom_To_Make_Life_Choices == 0.016)
+ind
+cleanData$Freedom_To_Make_Life_Choices[ind] <- NA
+cleanData[ind, ]
+
+ind <- which(myData$Freedom_To_Make_Life_Choices == 0.000)
+ind
+cleanData$Freedom_To_Make_Life_Choices[ind] <- NA
+cleanData[ind, ]
+
+
+histGenerosity <- ggplot(myData, aes(x = Generosity)) +
+  geom_histogram()  # plot histogram to identify outliers
+histGenerosity  # values greater than 0.4 could be outliers
+
+boxplot(myData$Generosity, plot = FALSE)$out  # use boxplot$out to determine outliers (+-1.5 x IQ)
+
+# change outlier values of 0.484 and 0.598 to NA for clean data set
+ind <- which(myData$Generosity == 0.484)
+ind
+cleanData$Generosity[ind] <- NA
+cleanData[ind, ]
+
+ind <- which(myData$Generosity == 0.598)
+ind
+cleanData$Generosity[ind] <- NA
+cleanData[ind, ]
+
+
+myData$Perceptions_Of_Corruption <- as.numeric(myData$Perceptions_Of_Corruption)  # r: imported as character, so convert to numeric
+
+histPerception <- ggplot(myData, aes(x = Perceptions_Of_Corruption)) +
+  geom_histogram()  # plot histogram to identify outliers
+histPerception # values of 0. and >0.4 could be errors
+
+boxplot(myData$Perceptions_Of_Corruption, plot = FALSE)$out  # use boxplot$out to determine outliers (+-1.5 x IQ)
+# lots of outliers for perceptions of corruptions - reviewed perceptions of corruption scores above 0.3 which represent countries where perception of corruption is low (i.e. good), so higher score means contributes more to happiness score.  Although more than 1.5 deviations from the IRQ, the scores appears reasonable as they come from highly rated countries.    
+
+myData$Residual <- as.numeric(myData$Residual)  # r: imported as character, so convert to numeric
+
+histResidual <- ggplot(myData, aes(x = Residual)) +
+  geom_histogram()  # plot histogram to identify outliers
+histResidual # value near zero may be an error
+# Warning message: Removed 1 rows containing non-finite values (stat_bin).
+
+
+boxplot(myData$Residual, plot = FALSE)$out  # use boxplot$out to determine outliers (+-1.5 x IQ)
+
+# change outlier values of 0.675, 0.383, and 0.725 to NA for clean data set
+ind <- which(myData$Residual == 0.675)
+ind
+cleanData$Residual[ind] <- NA
+cleanData[ind, ]
+
+ind <- which(myData$Residual == 0.383)
+ind
+cleanData$Residual[ind] <- NA
+cleanData[ind, ]
+
+ind <- which(myData$Residual == 0.725)
+ind
+cleanData$Residual[ind] <- NA
+cleanData[ind, ]
+
+
+# Condensed New Dataset:
+head(cleanData)
+tail(cleanData)
+str(cleanData)
+
+
+# Still need to figure out how to treat columns with NA in them  (can exclude the entire record, can calculate an estimated  amount, etc.)
+# Also need to know how to show results on World Map
+
+
+```
+
+```{r Step 2b}
+
+
+# rename columns to be simpler and more appropriate
+Happiness <-select(cleanData, 
+                   Country = Country,
+                   Rank = Rank,
+                   Happiness = Score,
+                   Economy = GDP_Per_Capita,
+                   Family = Social_Support,
+                   Health = Healthy_Life_Expectancy,
+                   Freedom = Freedom_To_Make_Life_Choices,
+                   Generosity = Generosity,
+                   Trust = Perceptions_Of_Corruption,
+                   Dystopia = Residual)
+
+Happiness$Trust <- as.numeric(Happiness$Trust)
+Happiness$Dystopia <- as.numeric(Happiness$Dystopia)
+
+# eliminate rows with NA using ‘na.omit()’ function 
+Happiness <- na.omit(Happiness)
+
+
+```
+Step 3
+
+1.	Discuss how you plan to uncover new information in the data that is not self-evident.
+
+I plan to look at the correlations between the different variables to determine which one's have the closest correlation with the happiness score.  
+
+
+```{r Step 3.1}
+
+
+matrixData <- as.matrix(Happiness[, c("Happiness", "Economy", "Family", "Health", "Freedom", "Generosity", "Trust", "Dystopia")])
+
+cor(matrixData)
+
+
+```
+
+The correlation matrix indicates that the strongest correlations with overall Happiness Score are: Economy (0.8145), Family (0.7812), and Health (0.7701).
+
+
+2.	What are different ways you could look at this data to answer the questions you want to answer?
+
+I'm planning to group the data by Continent to compare the variables contributing the most to Happiness (see #3 below).
+Could also look at the correlation between variables other than happiness (i.e. Economy vs Family).  Could also focus on top 5-10 countries, rather than by continent.  
+At this point I'm going to group by Continent and focus on the top 3 variables correlated with Happiness.
+
+
+
+3.	Do you plan to slice and dice the data in different ways, create new variables, or join separate data frames to create new summary information? Explain.
+
+I plan to create a new variable for Continent so I can compare happiness variables across different continents.
+
+```{r Step 3.3}
+
+# assign continent column to dataframes based on country name
+
+Happiness$Continent = NA
+
+Happiness$Continent[which(Happiness$Country %in% c("Israel", "United Arab Emirates", "Singapore", "Thailand", "Taiwan Province of China", "Qatar", "Saudi Arabia", "Kuwait", "Bahrain", "Malaysia", "Uzbekistan", "Japan", "South Korea", "Turkmenistan", "Kazakhstan", "Turkey", "Hong Kong S.A.R., China", "Philippines", "Jordan", "China", "Pakistan", "Indonesia", "Azerbaijan", "Lebanon", "Vietnam", "Tajikistan", "Bhutan", "Kyrgyzstan", "Nepal", "Mongolia", "Palestinian Territories", "Iran", "Bangladesh", "Myanmar", "Iraq", "Sri Lanka", "Armenia", "India", "Georgia", "Cambodia", "Afghanistan", "Yemen", "Syria"))] <- "Asia"
+
+Happiness$Continent[which(Happiness$Country %in% c("Norway", "Denmark", "Iceland", "Switzerland", "Finland", "Netherlands", "Sweden", "Austria", "Ireland", "Germany",
+"Belgium", "Luxembourg", "United Kingdom", "Czech Republic",
+"Malta", "France", "Spain", "Slovakia", "Poland", "Italy", "Russia", "Lithuania", "Latvia", "Moldova", "Romania",    "Slovenia", "North Cyprus", "Cyprus", "Estonia", "Belarus",
+"Serbia", "Hungary", "Croatia", "Kosovo", "Montenegro",
+"Greece", "Portugal", "Bosnia and Herzegovina", "Macedonia",
+"Bulgaria", "Albania", "Ukraine"))] <- "Europe"
+
+Happiness$Continent[which(Happiness$Country %in% c("Canada", "Costa Rica", "United States", "Mexico", "Panama","Trinidad and Tobago", "El Salvador", "Belize", "Guatemala","Jamaica", "Nicaragua", "Dominican Republic", "Honduras", "Haiti"))] <- "North America"
+
+Happiness$Continent[which(Happiness$Country %in% c("Chile", "Brazil", "Argentina", "Uruguay", "Colombia", "Ecuador", "Bolivia", "Peru", "Paraguay", "Venezuela"))] <- "South America"
+
+Happiness$Continent[which(Happiness$Country %in% c("New Zealand", "Australia"))] <- "Australia"
+
+# assume remaining countries are in Africa
+Happiness$Continent[which(is.na(Happiness$Continent))] <- "Africa"
+
+# Changing Continent column to factor
+Happiness$Continent <- as.factor(Happiness$Continent)
+
+
+```
+
+4.	How could you summarize your data to answer key questions?
+
+I could summarize the impact of the different variables affecting happiness by creating linear models of different variable combinations and then using the summary function to test fit.
+
+
+```{r Step 3.4}
+
+mod1 <- lm(Happiness ~ Economy, data = Happiness) 
+summary(mod1)
+
+mod2 <- lm(Happiness ~ Family, data = Happiness) 
+summary(mod2)
+
+mod3 <- lm(Happiness ~ Health, data = Happiness) 
+summary(mod3)
+
+mod4 <- lm(Happiness ~ Economy + Family + Health, data = Happiness) 
+summary(mod4)
+
+anova(mod1, mod2, mod3, mod4)
+
+
+```
+
+5.	What types of plots and tables will help you to illustrate the findings to your questions? Ensure that all graph plots have axis titles, legend if necessary, scales are appropriate, appropriate geoms used, etc.).
+
+I'm going to use scatter plots with facets to show correlation between Happiness and top 3 variables by continent.
+
+```{r Step 3.5}
+
+# plot economy vs happiness by continent
+ggplot(Happiness, aes(x = Economy, y= Happiness )) + 
+  geom_point(aes(color = Continent)) +
+  geom_smooth(aes(color = Continent), method = "lm") +
+  facet_wrap(~Continent) +
+  labs(title = "Happiness and Economy across Continents")
+
+# plot family vs happiness by continent
+ggplot(Happiness, aes(x = Family, y= Happiness )) + 
+  geom_point(aes(color = Continent)) +
+  geom_smooth(aes(color = Continent), method = "lm") +
+  facet_wrap(~Continent) +
+  labs(title = "Happiness and Family across Continents")
+
+# plot health vs happiness by continent
+ggplot(Happiness, aes(x = Family, y= Happiness )) + 
+  geom_point(aes(color = Continent)) +
+  geom_smooth(aes(color = Continent), method = "lm") +
+  facet_wrap(~Continent) +
+  labs(title = "Happiness and Health across Continents")
+
+
+
+```
+
+6.	What do you not know how to do right now that you need to learn to answer your questions?
+
+I would like to plot the Happiness scores by country on a world map.  I believe there is a package out there than can do this.
+
+
+7.	Do you plan on incorporating any machine learning techniques to answer your research questions? Explain.
+
+I will consider using k nearest neighbors for the final step, but at this point I believe I have the information I need.
+
